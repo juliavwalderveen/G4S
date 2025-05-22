@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opsporingsbericht: Vind de Verdachte</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        h1 {
+            color: #1a3c6e;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        .game-container {
+            position: relative;
+            margin: 20px auto;
+            max-width: 900px;
+            cursor: crosshair;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            background-color: #f9f9f9;
+        }
+        .city-background {
+            width: 100%;
+            height: 550px;
+            background-color: #e8e8e8;
+            background-image: linear-gradient(
+                to bottom,
+                #87ceeb 0%,
+                #87ceeb 40%,
+                #e8e8e8 40%,
+                #e8e8e8 100%
+            );
+            position: relative;
+            overflow: hidden;
+        }
+        .street {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background-color: #555;
+        }
+        .sidewalk {
+            position: absolute;
+            bottom: 100px;
+            left: 0;
+            width: 100%;
+            height: 30px;
+            background-color: #999;
+            border-top: 2px solid #777;
+            border-bottom: 2px solid #777;
+        }
+        .building {
+            position: absolute;
+            bottom: 130px;
+            background-color: #8395a7;
+            border: 1px solid #777;
+        }
+        .window {
+            position: absolute;
+            width: 15px;
+            height: 20px;
+            background-color: #c8d6e5;
+            border: 2px solid #576574;
+        }
+        .door {
+            position: absolute;
+            width: 20px;
+            height: 30px;
+            background-color: #576574;
+            bottom: 0;
+        }
+        .person {
+            position: absolute;
+            bottom: 130px;
+            width: 14px;
+            height: 35px;
+            z-index: 10;
+            cursor: pointer;
+        }
+        .head {
+            position: absolute;
+            top: -12px;
+            left: 2px;
+            width: 10px;
+            height: 12px;
+            background-color: #ffdfc4;
+            border-radius: 50% 50% 40% 40%;
+        }
+        .body {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 14px;
+            height: 22px;
+            border-radius: 3px 3px 0 0;
+        }
+        .legs {
+            position: absolute;
+            bottom: 0;
+            left: 2px;
+            width: 4px;
+            height: 13px;
+            background-color: #3c4043;
+        }
+        .legs::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: -6px;
+            width: 4px;
+            height: 13px;
+            background-color: #3c4043;
+        }
+        .suspect {
+            z-index: 11;
+        }
+        .suspect .head {
+            position: relative;
+        }
+        .suspect .cap {
+            position: absolute;
+            top: -5px;
+            left: -2px;
+            width: 14px;
+            height: 5px;
+            background-color: #34495e;
+            border-radius: 3px 3px 0 0;
+        }
+        .target-circle {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #e74c3c;
+            border-radius: 50%;
+            display: none;
+            z-index: 20;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 5px rgba(231, 76, 60, 0.5);
+        }
+        .message-box {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px auto;
+            max-width: 900px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .suspect-description {
+            text-align: left;
+            flex: 2;
+            padding-right: 20px;
+            border-right: 1px solid #eee;
+        }
+        .suspect-description h3 {
+            color: #c0392b;
+            margin-top: 0;
+        }
+        .suspect-features {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .game-stats {
+            flex: 1;
+            text-align: left;
+            padding-left: 20px;
+        }
+        .timer {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .score {
+            font-size: 16px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        .difficulty {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .difficulty-label {
+            font-weight: bold;
+            margin-right: 15px;
+            line-height: 38px;
+            color: #2c3e50;
+        }
+        .difficulty-options {
+            display: flex;
+        }
+        .difficulty button {
+            margin: 0 5px;
+            padding: 8px 15px;
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        .difficulty button:hover {
+            background-color: #e2e8ea;
+        }
+        .difficulty button.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        .restart-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        .restart-btn:hover {
+            background-color: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        .message {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 25px;
+            color: #3498db;
+        }
+        .car {
+            position: absolute;
+            bottom: 110px;
+            width: 60px;
+            height: 25px;
+            background-color: #e74c3c;
+            border-radius: 5px;
+            z-index: 5;
+        }
+        .car::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            width: 40px;
+            height: 12px;
+            background-color: #e74c3c;
+            border-radius: 30% 30% 0 0;
+        }
+        .car::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10px;
+            width: 8px;
+            height: 8px;
+            background-color: #333;
+            border-radius: 50%;
+            box-shadow: 32px 0 0 #333;
+        }
+        .tree {
+            position: absolute;
+            bottom: 130px;
+            z-index: 4;
+        }
+        .trunk {
+            position: absolute;
+            bottom: 0;
+            left: 7px;
+            width: 6px;
+            height: 25px;
+            background-color: #795548;
+        }
+        .leaves {
+            position: absolute;
+            bottom: 20px;
+            width: 20px;
+            height: 25px;
+            background-color: #388e3c;
+            border-radius: 50%;
+        }
+        .bench {
+            position: absolute;
+            bottom: 130px;
+            width: 30px;
+            height: 10px;
+            background-color: #8d6e63;
+            z-index: 4;
+        }
+        .bench::before {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 3px;
+            width: 3px;
+            height: 8px;
+            background-color: #5d4037;
+            box-shadow: 21px 0 0 #5d4037;
+        }
+        @keyframes walk {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Opsporingsbericht: Vind de Verdachte</h1>
+    
+    <div class="difficulty">
+        <div class="difficulty-label">Moeilijkheidsgraad:</div>
+        <div class="difficulty-options">
+            <button id="easy" class="active">Makkelijk</button>
+            <button id="medium">Normaal</button>
+            <button id="hard">Moeilijk</button>
+        </div>
+    </div>
+    
+    <div class="message-box">
+        <div class="suspect-description">
+            <h3>Verdachtenprofiel</h3>
+            <div class="suspect-features">
+                <p><strong>Signalement:</strong> Man, middellange lengte, draagt een donkerblauwe jas en een zwarte muts.</p>
+                <p><strong>Laatste waarneming:</strong> Gezien in de binnenstad, lopend tussen de voetgangers.</p>
+                <p><strong>Let op:</strong> De verdachte kan zich proberen te mengen tussen de normale voetgangers.</p>
+            </div>
+        </div>
+        <div class="game-stats">
+            <div class="timer">Tijd: <span id="time">0</span> seconden</div>
+            <div class="score">Politiescore: <span id="score">0</span></div>
+            <div class="controls">
+                <button class="restart-btn" id="restart">Nieuwe Zoekactie</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="game-container">
+        <div class="city-background" id="scene">
+            <div class="sidewalk"></div>
+            <div class="street"></div>
+        </div>
+        <div class="target-circle" id="target"></div>
+    </div>
+    
+    <div class="message" id="message">Zoek de verdachte tussen de voetgangers. Klik om te arresteren!</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const scene = document.getElementById('scene');
+            const target = document.getElementById('target');
+            const message = document.getElementById('message');
+            const timeDisplay = document.getElementById('time');
+            const scoreDisplay = document.getElementById('score');
+            const restartBtn = document.getElementById('restart');
+            const easyBtn = document.getElementById('easy');
+            const mediumBtn = document.getElementById('medium');
+            const hardBtn = document.getElementById('hard');
+            
+            let startTime;
+            let timerInterval;
+            let gameActive = false;
+            let suspectEl = null;
+            let difficulty = 'easy';
+            let score = 0;
+            let wrongClicks = 0;
+            
+            const colors = {
+                bodies: [
+                    '#34495e', '#2c3e50', '#2980b9', '#3498db', '#27ae60', 
+                    '#2ecc71', '#16a085', '#1abc9c', '#8e44ad', '#9b59b6',
+                    '#c0392b', '#e74c3c', '#d35400', '#e67e22', '#f39c12',
+                    '#7f8c8d', '#95a5a6', '#bdc3c7', '#ecf0f1'
+                ],
+                suspectBody: '#1a237e',  // Donkerblauwe jas voor de verdachte
+                skins: ['#ffdfc4', '#f0d0a9', '#eac086', '#e0ac69', '#c68642', '#8d5524'],
+                pants: ['#3c4043', '#1a237e', '#4e342e', '#37474f']
+            };
+            
+            // Moeilijkheidsgraad instellingen
+            const difficultySettings = {
+                easy: { people: 15, buildings: 3, trees: 3, benches: 2, cars: 1 },
+                medium: { people: 30, buildings: 5, trees: 6, benches: 3, cars: 2 },
+                hard: { people: 50, buildings: 8, trees: 10, benches: 5, cars: 3 }
+            };
+            
+            // Moeilijkheidsgraad knoppen
+            easyBtn.addEventListener('click', () => setDifficulty('easy'));
+            mediumBtn.addEventListener('click', () => setDifficulty('medium'));
+            hardBtn.addEventListener('click', () => setDifficulty('hard'));
+            
+            function setDifficulty(level) {
+                difficulty = level;
+                easyBtn.classList.remove('active');
+                mediumBtn.classList.remove('active');
+                hardBtn.classList.remove('active');
+                
+                document.getElementById(level).classList.add('active');
+                startGame();
+            }
+            
+            // Start het spel
+            function startGame() {
+                clearInterval(timerInterval);
+                scene.innerHTML = '';
+                scene.appendChild(createElement('div', 'sidewalk'));
+                scene.appendChild(createElement('div', 'street'));
+                
+                message.textContent = 'Zoek de verdachte tussen de voetgangers. Klik om te arresteren!';
+                message.style.color = '#3498db';
+                target.style.display = 'none';
+                gameActive = true;
+                wrongClicks = 0;
+                suspectEl = null;
+                
+                // Genereer de stadsscène
+                const settings = difficultySettings[difficulty];
+                createBuildings(settings.buildings);
+                createTrees(settings.trees);
+                createBenches(settings.benches);
+                createCars(settings.cars);
+                createPeople(settings.people);
+                createSuspect();
+                
+                // Start de timer
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimer, 1000);
+                updateTimer();
+            }
+            
+            // Helper functie om DOM elementen te maken
+            function createElement(type, className) {
+                const element = document.createElement(type);
+                if (className) element.className = className;
+                return element;
+            }
+            
+            // Update de timer
+            function updateTimer() {
+                const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                timeDisplay.textContent = elapsedSeconds;
+            }
+            
+            // Maak willekeurige gebouwen
+            function createBuildings(count) {
+                for (let i = 0; i < count; i++) {
+                    const width = Math.floor(Math.random() * 120) + 80;
+                    const height = Math.floor(Math.random() * 150) + 100;
+                    const left = Math.random() * (scene.offsetWidth - width);
+                    
+                    const building = createElement('div', 'building');
+                    building.style.width = `${width}px`;
+                    building.style.height = `${height}px`;
+                    building.style.left = `${left}px`;
+                    
+                    // Random building color
+                    const colors = ['#8395a7', '#ced6e0', '#a5b1c2', '#c8d6e5', '#dfe4ea'];
+                    building.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // Add windows
+                    const windowRows = Math.floor(height / 30);
+                    const windowCols = Math.floor(width / 25);
+                    
+                    for (let row = 0; row < windowRows; row++) {
+                        for (let col = 0; col < windowCols; col++) {
+                            if (Math.random() > 0.2) {
+                                const windowEl = createElement('div', 'window');
+                                windowEl.style.left = `${col * 25 + 5}px`;
+                                windowEl.style.top = `${row * 30 + 5}px`;
+                                building.appendChild(windowEl);
+                            }
+                        }
+                    }
+                    
+                    // Add door
+                    const door = createElement('div', 'door');
+                    door.style.left = `${width / 2 - 10}px`;
+                    building.appendChild(door);
+                    
+                    scene.appendChild(building);
+                }
+            }
+            
+            // Maak bomen
+            function createTrees(count) {
+                for (let i = 0; i < count; i++) {
+                    const left = Math.random() * (scene.offsetWidth - 20);
+                    
+                    const tree = createElement('div', 'tree');
+                    tree.style.left = `${left}px`;
+                    
+                    const trunk = createElement('div', 'trunk');
+                    const leaves = createElement('div', 'leaves');
+                    
+                    tree.appendChild(trunk);
+                    tree.appendChild(leaves);
+                    
+                    scene.appendChild(tree);
+                }
+            }
+            
+            // Maak bankjes
+            function createBenches(count) {
+                for (let i = 0; i < count; i++) {
+                    const left = Math.random() * (scene.offsetWidth - 30);
+                    
+                    const bench = createElement('div', 'bench');
+                    bench.style.left = `${left}px`;
+                    
+                    scene.appendChild(bench);
+                }
+            }
+            
+            // Maak auto's
+            function createCars(count) {
+                for (let i = 0; i < count; i++) {
+                    const left = Math.random() * (scene.offsetWidth - 60);
+                    
+                    const car = createElement('div', 'car');
+                    car.style.left = `${left}px`;
+                    
+                    const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#34495e'];
+                    car.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    car.style.zIndex = Math.floor(Math.random() * 3) + 5;
+                    
+                    // Match the before element color to the car
+                    document.styleSheets[0].insertRule(`.car:nth-child(${i + 1})::before { background-color: ${car.style.backgroundColor}; }`, 0);
+                    
+                    scene.appendChild(car);
+                }
+            }
+            
+            // Maak willekeurige mensen
+            function createPeople(count) {
+                for (let i = 0; i < count; i++) {
+                    const person = createPerson();
+                    person.style.left = `${Math.random() * (scene.offsetWidth - 14)}px`;
+                    
+                    // Random animation delay voor natuurlijkere beweging
+                    if (Math.random() > 0.7) {
+                        person.style.animation = `walk 0.5s infinite alternate ${Math.random() * 0.5}s`;
+                    }
+                    
+                    scene.appendChild(person);
+                }
+            }
+            
+            // Helper functie om een persoon te maken
+            function createPerson() {
+                const person = createElement('div', 'person');
+                
+                const body = createElement('div', 'body');
+                body.style.backgroundColor = colors.bodies[Math.floor(Math.random() * colors.bodies.length)];
+                
+                const head = createElement('div', 'head');
+                head.style.backgroundColor = colors.skins[Math.floor(Math.random() * colors.skins.length)];
+                
+                const legs = createElement('div', 'legs');
+                legs.style.backgroundColor = colors.pants[Math.floor(Math.random() * colors.pants.length)];
+                
+                // Match the ::after element color to the legs
+                const styleIndex = document.styleSheets[0].cssRules.length;
+                document.styleSheets[0].insertRule(`.person:nth-child(${document.querySelectorAll('.person').length + 1}) .legs::after { background-color: ${legs.style.backgroundColor}; }`, styleIndex);
+                
+                person.appendChild(body);
+                person.appendChild(head);
+                person.appendChild(legs);
+                
+                // Sommige mensen krijgen een hoed/pet
+                if (Math.random() > 0.7) {
+                    const hat = createElement('div', 'cap');
+                    hat.style.backgroundColor = colors.bodies[Math.floor(Math.random() * colors.bodies.length)];
+                    head.appendChild(hat);
+                }
+                
+                return person;
+            }
+            
+            // Creëer de verdachte
+            function createSuspect() {
+                const suspect = createElement('div', 'person suspect');
+                
+                // Plaats op een willekeurige plek op het voetpad
+                suspect.style.left = `${Math.random() * (scene.offsetWidth - 14)}px`;
+                
+                const body = createElement('div', 'body');
+                body.style.backgroundColor = colors.suspectBody; // Vaste kleur voor verdachte
+                
+                const head = createElement('div', 'head');
+                head.style.backgroundColor = colors.skins[Math.floor(Math.random() * colors.skins.length)];
+                
+                const legs = createElement('div', 'legs');
+                legs.style.backgroundColor = '#1a237e'; // Donkere broek
+                
+                // Match the ::after element color to the legs
+                const styleIndex = document.styleSheets[0].cssRules.length;
+                document.styleSheets[0].insertRule(`.suspect .legs::after { background-color: #1a237e; }`, styleIndex);
+                
+                // Verdachte heeft altijd een zwarte muts
+                const cap = createElement('div', 'cap');
+                cap.style.backgroundColor = '#000';
+                head.appendChild(cap);
+                
+                suspect.appendChild(body);
+                suspect.appendChild(head);
+                suspect.appendChild(legs);
+                
+                // Voeg toe aan de scène
+                scene.appendChild(suspect);
+                suspectEl = suspect;
+                
+                // Random animation delay voor natuurlijkere beweging
+                if (Math.random() > 0.5) {
+                    suspect.style.animation = `walk 0.5s infinite alternate ${Math.random() * 0.5}s`;
+                }
+            }
+            
+            // Controleer of de speler de verdachte heeft gevonden
+            scene.addEventListener('click', function(e) {
+                if (!gameActive) return;
+                
+                const rect = scene.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Toon de doelcirkel
+                target.style.display = 'block';
+                target.style.left = `${x}px`;
+                target.style.top = `${y}px`;
+                
+                const clickedElement = document.elementFromPoint(e.clientX, e.clientY);
+                const clickedPerson = clickedElement.closest('.person');
+                
+                if (clickedPerson) {
+                    if (clickedPerson.classList.contains('suspect')) {
+                        gameActive = false;
+                        clearInterval(timerInterval);
+                        
+                        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+                        score += Math.max(100 - elapsedSeconds - (wrongClicks * 5), 10);
+                        scoreDisplay.textContent = score;
+                        
+                        message.textContent = `Goed gedaan! Verdachte gearresteerd in ${elapsedSeconds} seconden!`;
+                        message.style.color = '#27ae60';
+                        
+                        target.style.borderColor = '#27ae60';
+                        target.style.boxShadow = '0 0 5px rgba(39, 174, 96, 0.5)';
+                        
+                        // Highlight de verdachte
+                        suspectEl.style.outline = '2px solid #27ae60';
+                        suspectEl.style.zIndex = '15';
+                    } else {
+                        wrongClicks++;
+                        message.textContent = 'Fout! Dit is een onschuldige burger. Blijf zoeken!';
+                        message.style.color = '#e74c3c';
+                        
+                        // Laat de doelcirkel na 500ms verdwijnen
+                        setTimeout(() => {
+                            target.style.display = 'none';
+                        }, 500);
+                    }
+                } else {
+                    message.textContent = 'Je hebt niemand geselecteerd. Probeer op een persoon te klikken.';
+                    setTimeout(() => {
+                        target.style.display = 'none';
+                    }, 500);
+                }
+            });
+            
+            // Nieuw spel knop
+            restartBtn.addEventListener('click', function() {
+                target.style.borderColor = '#e74c3c';
+                target.style.boxShadow = '0 0 5px rgba(231, 76, 60, 0.5)';
+                startGame();
+            });
+            
+            // Start het spel bij laden
+            startGame();
+        });
+    </script>
+</body>
+</html>
